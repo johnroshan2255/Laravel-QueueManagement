@@ -2,7 +2,7 @@
     "name": "japt/queue-management",
     "description": "A custom package for managing and monitoring queues.",
     "type": "library",
-    "version": "1.0.0",
+    "version":  "1.0.0",
     "require": {
         "php": "^7.3|^8.0|^8.1|^8.2",
         "illuminate/support": "^8.0|^9.0|^10.0",

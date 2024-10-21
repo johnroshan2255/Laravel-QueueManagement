@@ -45,9 +45,12 @@
                         @endforelse
                     </tbody>
                 </table>
-                <div class="d-flex justify-content-center">
-                    {{ $queues->links('pagination::bootstrap-4') }}
-                </div>
+                
+                @if($queueDriver === 'database')
+                    <div class="d-flex justify-content-center">
+                        {{ $queues->links('pagination::bootstrap-4') }}
+                    </div>
+                @endif
             </div>
         </div>
     </div>

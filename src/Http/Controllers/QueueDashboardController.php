@@ -51,7 +51,7 @@ class QueueDashboardController extends BaseController
             $failedJobs = DB::table('failed_jobs')->get();
         }
 
-        return view('queuemanagement::queues', compact('queues', 'failedJobs'));
+        return view('queuemanagement::queues', compact('queues', 'failedJobs', 'queueDriver'));
     }
 
     public function jobs()
@@ -66,7 +66,7 @@ class QueueDashboardController extends BaseController
             $jobs = [];
         }
 
-        return view('queuemanagement::jobs', compact('jobs'));
+        return view('queuemanagement::jobs', compact('jobs', 'queueDriver'));
     }
 
     public function failed()
@@ -78,7 +78,7 @@ class QueueDashboardController extends BaseController
             $failedJobs = DB::table('failed_jobs')->paginate(10);
         }
 
-        return view('queuemanagement::failedjobs', compact('failedJobs'));
+        return view('queuemanagement::failedjobs', compact('failedJobs', 'queueDriver'));
     }
 
     public function runJob($id)
