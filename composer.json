@@ -1,0 +1,24 @@
+{
+    "name": "japt/queue-management",
+    "description": "A custom package for managing and monitoring queues.",
+    "type": "library",
+    "require": {
+        "php": "^7.3|^8.0|^8.1|^8.2",
+        "illuminate/support": "^8.0|^9.0|^10.0",
+        "illuminate/queue": "^8.0|^9.0|^10.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Japt\\QueueManagement\\": "src/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Japt\\QueueManagement\\QueueManagementServiceProvider"
+            ]
+        }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
+}
