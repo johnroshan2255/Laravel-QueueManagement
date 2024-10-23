@@ -14,7 +14,7 @@
         <div class="card-body card_color">
             <h5 class="card-title">Queues</h5>
             <div class="table-responsive">
-                <table class="table table-bordered table-striped">
+                <table class="table table-bordered">
                     <thead>
                         <tr>
                             <th scope="col">Queue Name</th>
@@ -48,7 +48,7 @@
                 
                 @if($queueDriver === 'database')
                     <div class="d-flex justify-content-center">
-                        {{ $queues->links('pagination::bootstrap-4') }}
+                        {{ $queues->links('queuemanagement::pagination.custom-pagination') }}
                     </div>
                 @endif
             </div>
@@ -105,10 +105,6 @@
 
         .table-responsive {
             margin-top: 20px;
-        }
-
-        .card_color {
-            background: #f8f9ff
         }
 
         .custom-btn {

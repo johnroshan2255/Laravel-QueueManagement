@@ -15,7 +15,7 @@
             <h5 class="card-title">Faild Jobs</h5>
 
             <div class="table-responsive">
-                <table class="table table-bordered table-striped">
+                <table class="table table-bordered">
                     <thead>
                         <tr>
                             <th>Job ID</th>
@@ -54,7 +54,7 @@
                 
                     @if($queueDriver === 'database')
                         <div class="d-flex justify-content-center">
-                            {{ $failedJobs->links('pagination::bootstrap-4') }}
+                            {{ $failedJobs->links('queuemanagement::pagination.custom-pagination') }}
                         </div>
                     @endif
                 
@@ -114,10 +114,6 @@
 
         .table-responsive {
             margin-top: 20px;
-        }
-
-        .card_color {
-            background: #f8f9ff
         }
 
         .custom-btn {

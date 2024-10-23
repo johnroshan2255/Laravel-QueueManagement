@@ -15,5 +15,7 @@ Route::group(['middleware' => 'web'], function () {
     Route::post('queues/retry/job/{id}', [QueueDashboardController::class, 'retryJob'])->name('queues.retry.job');
     Route::post('queues/cancel/job/{id}', [QueueDashboardController::class, 'cancelJob'])->name('queues.cancel.job');
     Route::get('queues/jobs/{id}/{type?}', [QueueDashboardController::class, 'showJobDetails'])->name('jobs.details');
+    Route::get('/queues/job/progress', [QueueDashboardController::class, 'getJobProgress'])->name('queues.get.job.progress');
+
 
 });

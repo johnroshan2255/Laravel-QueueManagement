@@ -81,10 +81,6 @@
             margin-top: 20px;
         }
 
-        .card_color {
-            background: #f8f9ff
-        }
-
         .custom-btn {
             background: #e4e7f5
         }

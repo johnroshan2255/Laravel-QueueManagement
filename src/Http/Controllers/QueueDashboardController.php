@@ -69,6 +69,13 @@ class QueueDashboardController extends BaseController
         return view('queuemanagement::jobs', compact('jobs', 'queueDriver'));
     }
 
+    public function getJobProgress()
+    {
+        $jobProgress = DB::table('job_progress')->get();
+
+        return response()->json(['jobs' => $jobProgress]);
+    }
+
     public function failed()
     {
         $queueDriver = config('queue.default');

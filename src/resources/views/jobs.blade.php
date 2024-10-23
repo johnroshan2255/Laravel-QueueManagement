@@ -15,7 +15,7 @@
             <h5 class="card-title">Jobs</h5>
 
             <div class="table-responsive">
-                <table class="table table-bordered table-striped">
+                <table class="table table-bordered">
                     <thead>
                         <tr>
                             <th>Job ID</th>
@@ -31,6 +31,18 @@
                             <td>{{ $job->queue }}</td>
                             <td>{{ \Illuminate\Support\Str::limit($job->payload, 50) }}</td>
                             <td>{{ $job->created_at }}</td>
+                            <td>
+                                <div class="progress">
+                                    <div class="progress-bar" role="progressbar" 
+                                            id="progress-bar-{{ $job->id }}" 
+                                            style="width: {{ $job->progress ?? 0 }}%;" 
+                                            aria-valuenow="{{ $job->progress ?? 0 }}" 
+                                            aria-valuemin="0" 
+                                            aria-valuemax="100">
+                                        {{ $job->progress ?? 0 }}%
+                                    </div>
+                                </div>
+                            </td>
                             <td>
                                 <button class="btn btn-sm custom-btn" onclick="showJobDetails({{ $job->id }})">Show Info</button>
                                 <form action="{{ route('queues.cancel.job', $job->id) }}" method="POST" class="d-inline">
@@ -54,7 +66,7 @@
                 
                 @if($queueDriver === 'database')
                     <div class="d-flex justify-content-center">
-                        {{ $jobs->links('pagination::bootstrap-4') }}
+                        {{ $jobs->links('queuemanagement::pagination.custom-pagination') }}
                     </div>
                 @endif
                 
@@ -116,10 +128,6 @@
             margin-top: 20px;
         }
 
-        .card_color {
-            background: #f8f9ff
-        }
-
         .custom-btn {
             background: #e4e7f5
         }
@@ -140,5 +148,29 @@
 
 @push('scripts')
     <script>
+
+        setInterval(function() {
+            fetchJobProgress();
+        }, 5000);
+
+        function fetchJobProgress() {
+            $.ajax({
+                url: "{{ route('queues.get.job.progress') }}",  // Define a route to get job progress
+                method: 'GET',
+                success: function(response) {
+                    // Loop through each job and update the progress bar
+                    response.jobs.forEach(function(job) {
+                        let progressBar = document.getElementById('progress-bar-' + job.job_id);
+                        progressBar.style.width = job.progress + '%';
+                        progressBar.setAttribute('aria-valuenow', job.progress);
+                        progressBar.textContent = job.progress + '%';
+                    });
+                },
+                error: function() {
+                    console.error('Failed to fetch job progress.');
+                }
+            });
+        }
+
     </script>
 @endpush

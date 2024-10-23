@@ -89,6 +89,25 @@
                 margin-left: 0;
             }
         }
+
+        .card {
+            border: none;
+        }
+
+        .card_color {
+            background: #f9fafb
+        }
+
+        .page-link {
+            background-color: #f9fafb !important;
+            color: #64748b !important;
+            border: 1px solid #e2e8f0 !important;
+        }
+        .active>.page-link {
+            background-color: var(--active-bg) !important;
+        }
+
+        
     </style>
 </head>
 <body>
@@ -151,7 +170,7 @@
     </div>
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.slim.min.js"></script>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.min.js" integrity="sha384-0pUGZvbkm6XF6gxjEnlmuGrJXVbNuzT9qBBavbLwCsOGabYfZo0T0to5eqruptLy" crossorigin="anonymous"></script>
 
 @stack('scripts')
