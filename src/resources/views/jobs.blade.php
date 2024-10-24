@@ -19,18 +19,18 @@
                     <thead>
                         <tr>
                             <th>Job ID</th>
-                            <th>Queue Name</th>
-                            <th>Payload</th>
+                            <th>Job Name</th>
+                            <th>Progress</th>
+                            <th>Status</th>
                             <th>Created At</th>
+                            <th>Action</th>
                         </tr>
                     </thead>
                     <tbody>
                         @forelse($jobs as $job)
                         <tr>
-                            <td>{{ $job->id }}</td>
-                            <td>{{ $job->queue }}</td>
-                            <td>{{ \Illuminate\Support\Str::limit($job->payload, 50) }}</td>
-                            <td>{{ $job->created_at }}</td>
+                            <td>{{ $job->job_id }}</td>
+                            <td>{{ $job->job_name }}</td>
                             <td>
                                 <div class="progress">
                                     <div class="progress-bar" role="progressbar" 
@@ -43,22 +43,25 @@
                                     </div>
                                 </div>
                             </td>
+                            <td>{{ $job->status }}</td>
+                            <td>{{ $job->created_at }}</td>
                             <td>
-                                <button class="btn btn-sm custom-btn" onclick="showJobDetails({{ $job->id }})">Show Info</button>
-                                <form action="{{ route('queues.cancel.job', $job->id) }}" method="POST" class="d-inline">
+                                @if(isset($job->oj_id))
+                                    <button class="btn btn-sm custom-btn" onclick="showJobDetails({{ $job->oj_id }})">Show Info</button>
+                                    <form action="{{ route('queues.cancel.job', $job->id) }}" method="POST" class="d-inline">
+                                        @csrf
+                                        <button type="submit" class="btn btn-sm custom-btn">Cancel</button>
+                                    </form>
+                                @endif
+                                <form action="{{ route('queues.delete.job', $job->job_id) }}" method="POST" class="d-inline">
                                     @csrf
-                                    <button type="submit" class="btn btn-sm custom-btn">Cancel</button>
-                                </form>
-                        
-                                <form action="{{ route('queues.retry.job', $job->id) }}" method="POST" class="d-inline">
-                                    @csrf
-                                    <button type="submit" class="btn btn-sm custom-btn">Retry</button>
+                                    <button type="submit" class="btn btn-sm custom-btn">Delete</button>
                                 </form>
                             </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="4">No jobs in the queue.</td>
+                            <td colspan="6">No jobs in the queue.</td>
                         </tr>
                     @endforelse
                     </tbody>
@@ -149,28 +152,32 @@
 @push('scripts')
     <script>
 
-        setInterval(function() {
-            fetchJobProgress();
-        }, 5000);
+        @if(count($jobs) > 0)
 
-        function fetchJobProgress() {
-            $.ajax({
-                url: "{{ route('queues.get.job.progress') }}",  // Define a route to get job progress
-                method: 'GET',
-                success: function(response) {
-                    // Loop through each job and update the progress bar
-                    response.jobs.forEach(function(job) {
-                        let progressBar = document.getElementById('progress-bar-' + job.job_id);
-                        progressBar.style.width = job.progress + '%';
-                        progressBar.setAttribute('aria-valuenow', job.progress);
-                        progressBar.textContent = job.progress + '%';
-                    });
-                },
-                error: function() {
-                    console.error('Failed to fetch job progress.');
-                }
-            });
-        }
+            setInterval(function() {
+                fetchJobProgress();
+            }, 5000);
+
+            function fetchJobProgress() {
+                $.ajax({
+                    url: "{{ route('queues.get.job.progress') }}",  // Define a route to get job progress
+                    method: 'GET',
+                    success: function(response) {
+                        // Loop through each job and update the progress bar
+                        response.jobs.forEach(function(job) {
+                            let progressBar = document.getElementById('progress-bar-' + job.id);
+                            progressBar.style.width = job.progress + '%';
+                            progressBar.setAttribute('aria-valuenow', job.progress);
+                            progressBar.textContent = job.progress + '%';
+                        });
+                    },
+                    error: function() {
+                        console.error('Failed to fetch job progress.');
+                    }
+                });
+            }
+
+        @endif
 
     </script>
 @endpush

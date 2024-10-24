@@ -2,6 +2,7 @@
 
 namespace Japt\QueueManagement\Http\Controllers;
 
+use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller as BaseController;
 use Illuminate\Support\Facades\Queue;
@@ -61,7 +62,7 @@ class QueueDashboardController extends BaseController
         $jobs = collect();
 
         if($queueDriver === 'database'){
-            $jobs = DB::table('jobs')->paginate(10);
+            $jobs = DB::table('job_progress as jb')->leftJoin('jobs as j','j.id','jb.job_id')->select('jb.*','j.id as oj_id')->paginate(10);
         } elseif ($queueDriver === 'redis') {
             $jobs = [];
         }
@@ -95,20 +96,36 @@ class QueueDashboardController extends BaseController
 
     public function retryJob($id)
     {
-        $job = DB::table('failed_jobs')->find($id);
+        try{
+            DB::beginTransaction();
+            $job = DB::table('failed_jobs')->find($id);
 
-        if ($job) {
-            DB::table('jobs')->insert([
-                'queue' => $job->queue,
-                'payload' => $job->payload,
-                'attempts' => 0, // Reset attempts
-                'reserved_at' => null,
-                'available_at' => now(),
-                'created_at' => now()
-            ]);
-            DB::table('failed_jobs')->where('id', $id)->delete();
+            if ($job) {
+                DB::table('jobs')->insert([
+                    'queue' => $job->queue,
+                    'payload' => $job->payload,
+                    'attempts' => 0, // Reset attempts
+                    'reserved_at' => null,
+                    'available_at' => now(),
+                    'created_at' => now()
+                ]);
+                DB::table('failed_jobs')->where('id', $id)->delete();
+                DB::table('job_progress')->where('job_id', $id)->delete();
+                DB::commit();
+            }
+            return redirect()->back()->with('success', 'Job retried successfully.');
+        } catch(Exception $th){
+            DB::rollBack();
+            return redirect()->back()->with('error', $th->getMessage());
         }
-        return redirect()->back()->with('success', 'Job retried successfully.');
+    }
+
+    public function deleteJob($id)
+    {
+        DB::table('job_progress')->where('job_id', $id)->delete();
+        DB::table('jobs')->where('id', $id)->delete();
+
+        return redirect()->back()->with('success', 'Job deleted successfully.');
     }
 
     public function cancelJob($id)

@@ -12,17 +12,24 @@ class QueueManagementServiceProvider extends ServiceProvider
 {
     public function register()
     {
+        // Register commands
         $this->commands([
             \Japt\QueueManagement\Console\MonitorQueue::class,
             \Japt\QueueManagement\Console\ClearQueue::class,
         ]);
 
+        // Merge the package configuration file
+        $this->mergeConfigFrom(__DIR__ . '/../config/queuemanagement.php', 'queuemanagement');
+    }
+
+    public function boot()
+    {
         // Register the event listeners
         $this->app['events']->listen(JobProcessed::class, [JobEventListener::class, 'handleJobProcessed']);
         $this->app['events']->listen(JobFailed::class, [JobEventListener::class, 'handleJobFailed']);
         $this->app['events']->listen(JobProcessing::class, [JobEventListener::class, 'handleJobProcessing']);
 
-        //Load migrations
+        // Load migrations
         $this->loadMigrationsFrom(__DIR__.'/../database/migrations');
 
         // Load routes
@@ -31,20 +38,17 @@ class QueueManagementServiceProvider extends ServiceProvider
         // Load views
         $this->loadViewsFrom(__DIR__.'/resources/views', 'queuemanagement');
 
-        // Publish config
+        // Register publishable resources
         $this->publishes([
             __DIR__.'/config/queuemanagement.php' => config_path('queuemanagement.php'),
-        ]);
+        ], 'config');
 
-        // Publish migrations
         $this->publishes([
             __DIR__.'/../database/migrations' => database_path('migrations'),
         ], 'migrations');
-    }
 
-    public function boot()
-    {
-        // Merge the package configuration file
-        $this->mergeConfigFrom(__DIR__ . '/../config/queuemanagement.php', 'queuemanagement');
+        $this->publishes([
+            __DIR__.'/resources/views' => resource_path('views/vendor/queuemanagement'),
+        ], 'views');
     }
 }
