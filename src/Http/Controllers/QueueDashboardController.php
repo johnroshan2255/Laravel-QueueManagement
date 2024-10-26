@@ -2,6 +2,8 @@
 
 namespace Japt\QueueManagement\Http\Controllers;
 
+use Exception;
+use GPBMetadata\Google\Protobuf\Timestamp;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller as BaseController;
 use Illuminate\Support\Facades\Queue;
@@ -61,19 +63,26 @@ class QueueDashboardController extends BaseController
         $jobs = collect();
 
         if($queueDriver === 'database'){
-            $jobs = DB::table('jobs')->paginate(10);
+            $jobs = DB::table('job_progress as jb')->leftJoin('jobs as j','j.id','jb.job_id')->select('jb.*','j.id as oj_id')->paginate(10);
+            $ids = collect($jobs->items())->pluck('id')->toArray();
         } elseif ($queueDriver === 'redis') {
             $jobs = [];
         }
 
-        return view('queuemanagement::jobs', compact('jobs', 'queueDriver'));
+        return view('queuemanagement::jobs', compact('jobs', 'queueDriver', 'ids'));
     }
 
-    public function getJobProgress()
+    public function getJobProgress(Request $request)
     {
-        $jobProgress = DB::table('job_progress')->get();
+        $jobProgress = DB::table('job_progress')->whereIn('id', $request->ids ?? [])->get();
 
         return response()->json(['jobs' => $jobProgress]);
+    }
+
+    public function getJobMatrix(Request $request)
+    {
+        $jobs = DB::table('job_progress')->whereIn('id', $request->ids ?? [])->select('id', 'memory_usage', 'peak_memory_usage', 'cpu_load')->get();
+        return response()->json(['jobs' => $jobs]);
     }
 
     public function failed()
@@ -95,25 +104,42 @@ class QueueDashboardController extends BaseController
 
     public function retryJob($id)
     {
-        $job = DB::table('failed_jobs')->find($id);
+        try{
+            DB::beginTransaction();
+            $job = DB::table('failed_jobs')->find($id);
 
-        if ($job) {
-            DB::table('jobs')->insert([
-                'queue' => $job->queue,
-                'payload' => $job->payload,
-                'attempts' => 0, // Reset attempts
-                'reserved_at' => null,
-                'available_at' => now(),
-                'created_at' => now()
-            ]);
-            DB::table('failed_jobs')->where('id', $id)->delete();
+            if ($job) {
+                DB::table('jobs')->insert([
+                    'queue' => $job->queue,
+                    'payload' => $job->payload,
+                    'attempts' => 0, // Reset attempts
+                    'reserved_at' => null,
+                    'available_at' => time(),
+                    'created_at' => time()
+                ]);
+                DB::table('failed_jobs')->where('id', $id)->delete();
+                DB::table('job_progress')->where('uuid', $job->uuid)->delete();
+                DB::commit();
+            }
+            return redirect()->back()->with('success', 'Job retried successfully.');
+        } catch(Exception $th){
+            DB::rollBack();
+            return redirect()->back()->with('error', $th->getMessage());
         }
-        return redirect()->back()->with('success', 'Job retried successfully.');
+    }
+
+    public function deleteJob($id)
+    {
+        DB::table('job_progress')->where('job_id', $id)->delete();
+        DB::table('jobs')->where('id', $id)->delete();
+
+        return redirect()->back()->with('success', 'Job deleted successfully.');
     }
 
     public function cancelJob($id)
     {
         DB::table('jobs')->where('id', $id)->delete();
+        DB::table('job_progress')->where('job_id', $id)->delete();
         return redirect()->back()->with('success', 'Job cancelled successfully.');
     }
 

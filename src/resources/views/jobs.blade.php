@@ -19,18 +19,18 @@
                     <thead>
                         <tr>
                             <th>Job ID</th>
-                            <th>Queue Name</th>
-                            <th>Payload</th>
+                            <th>Job Name</th>
+                            <th>Progress</th>
+                            <th>Status</th>
                             <th>Created At</th>
+                            <th>Action</th>
                         </tr>
                     </thead>
                     <tbody>
                         @forelse($jobs as $job)
                         <tr>
-                            <td>{{ $job->id }}</td>
-                            <td>{{ $job->queue }}</td>
-                            <td>{{ \Illuminate\Support\Str::limit($job->payload, 50) }}</td>
-                            <td>{{ $job->created_at }}</td>
+                            <td>{{ $job->job_id }}</td>
+                            <td>{{ $job->job_name }}</td>
                             <td>
                                 <div class="progress">
                                     <div class="progress-bar" role="progressbar" 
@@ -43,22 +43,57 @@
                                     </div>
                                 </div>
                             </td>
+                            <td>{{ $job->status }}</td>
+                            <td>{{ $job->created_at }}</td>
                             <td>
-                                <button class="btn btn-sm custom-btn" onclick="showJobDetails({{ $job->id }})">Show Info</button>
-                                <form action="{{ route('queues.cancel.job', $job->id) }}" method="POST" class="d-inline">
+                                <button class="toggle-metrics" onclick="toggleMetrics({{ $job->id }})">
+                                    Show Metrics
+                                </button>
+                                @if(isset($job->oj_id))
+                                    <button class="btn btn-sm custom-btn" onclick="showJobDetails({{ $job->oj_id }})">Show Info</button>
+                                    <form action="{{ route('queues.cancel.job', $job->id) }}" method="POST" class="d-inline">
+                                        @csrf
+                                        <button type="submit" class="btn btn-sm custom-btn">Cancel</button>
+                                    </form>
+                                @endif
+                                <form action="{{ route('queues.delete.job', $job->job_id) }}" method="POST" class="d-inline">
                                     @csrf
-                                    <button type="submit" class="btn btn-sm custom-btn">Cancel</button>
+                                    <button type="submit" class="btn btn-sm custom-btn">Delete</button>
                                 </form>
-                        
-                                <form action="{{ route('queues.retry.job', $job->id) }}" method="POST" class="d-inline">
-                                    @csrf
-                                    <button type="submit" class="btn btn-sm custom-btn">Retry</button>
-                                </form>
+                            </td>
+                        </tr>
+                        <tr class="metrics-row">
+                            <td colspan="6">
+                                <div id="metrics-{{ $job->id }}" class="metrics-container">
+                                    <div class="metrics-grid">
+                                        <div class="metric-card">
+                                            <div class="metric-title">Memory Usage</div>
+                                            <div class="metric-value" id="memory-{{ $job->id }}">
+                                                0<span class="metric-unit">MB</span>
+                                            </div>
+                                        </div>
+                                        <div class="metric-card">
+                                            <div class="metric-title">Peak Memory</div>
+                                            <div class="metric-value" id="peak-memory-{{ $job->id }}">
+                                                0<span class="metric-unit">MB</span>
+                                            </div>
+                                        </div>
+                                        <div class="metric-card">
+                                            <div class="metric-title">CPU Load</div>
+                                            <div class="metric-value" id="cpu-{{ $job->id }}">
+                                                0<span class="metric-unit">%</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="chart-container">
+                                        <canvas id="chart-{{ $job->id }}"></canvas>
+                                    </div>
+                                </div>
                             </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="4">No jobs in the queue.</td>
+                            <td colspan="6">No jobs in the queue.</td>
                         </tr>
                     @endforelse
                     </tbody>
@@ -147,30 +182,133 @@
 @endsection
 
 @push('scripts')
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.0/chart.min.js"></script>
     <script>
 
-        setInterval(function() {
-            fetchJobProgress();
-        }, 5000);
+        let charts = {};
 
-        function fetchJobProgress() {
-            $.ajax({
-                url: "{{ route('queues.get.job.progress') }}",  // Define a route to get job progress
-                method: 'GET',
-                success: function(response) {
-                    // Loop through each job and update the progress bar
-                    response.jobs.forEach(function(job) {
-                        let progressBar = document.getElementById('progress-bar-' + job.job_id);
-                        progressBar.style.width = job.progress + '%';
-                        progressBar.setAttribute('aria-valuenow', job.progress);
-                        progressBar.textContent = job.progress + '%';
-                    });
+        function toggleMetrics(jobId) {
+            const metricsContainer = document.getElementById(`metrics-${jobId}`);
+            const isHidden = metricsContainer.style.display === 'none' || metricsContainer.style.display === '';
+                        
+            metricsContainer.style.display = isHidden ? 'block' : 'none';
+            
+            if (isHidden && !charts[jobId]) {
+                initializeChart(jobId);
+            }
+        }
+
+        function initializeChart(jobId) {
+            const ctx = document.getElementById(`chart-${jobId}`).getContext('2d');
+            charts[jobId] = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Memory Usage (MB)',
+                        data: [],
+                        borderColor: '#3498db',
+                        tension: 0.4
+                    }, {
+                        label: 'CPU Load (%)',
+                        data: [],
+                        borderColor: '#e74c3c',
+                        tension: 0.4
+                    }]
                 },
-                error: function() {
-                    console.error('Failed to fetch job progress.');
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
                 }
             });
         }
+
+        function updateMetrics(jobId, memory, peakMemory, cpu) {
+            if (!charts[jobId]) return;
+
+            const memoryNum = Number(memory) || 0;
+            const peakMemoryNum = Number(peakMemory) || 0;
+            const cpuNum = Number(cpu) || 0;
+
+            // Update displayed values
+            document.getElementById(`memory-${jobId}`).innerHTML = 
+                (memoryNum / 1024 / 1024).toFixed(2) + '<span class="metric-unit">MB</span>';
+            document.getElementById(`peak-memory-${jobId}`).innerHTML = 
+                (peakMemoryNum / 1024 / 1024).toFixed(2) + '<span class="metric-unit">MB</span>';
+            document.getElementById(`cpu-${jobId}`).innerHTML = 
+                cpuNum.toFixed(2) + '<span class="metric-unit">%</span>';
+
+            // Update chart
+            const timestamp = new Date().toLocaleTimeString();
+            const chart = charts[jobId];
+            
+            chart.data.labels.push(timestamp);
+            chart.data.datasets[0].data.push((memoryNum / 1024 / 1024).toFixed(2));
+            chart.data.datasets[1].data.push(cpuNum);
+
+            // Keep last 10 data points
+            if (chart.data.labels.length > 10) {
+                chart.data.labels.shift();
+                chart.data.datasets.forEach(dataset => dataset.data.shift());
+            }
+
+            chart.update();
+        }
+
+        @if(count($jobs) > 0)
+
+            setInterval(function() {
+                fetchJobProgress();
+                fetchJobMetrics();
+            }, 5000);
+
+            function fetchJobProgress() {
+                $.ajax({
+                    url: "{{ route('queues.get.job.progress') }}",
+                    data: { ids: {!! json_encode($ids) !!} },
+                    method: 'GET',
+                    success: function(response) {
+                        // Loop through each job and update the progress bar
+                        response.jobs.forEach(function(job) {
+                            let progressBar = document.getElementById('progress-bar-' + job.id);
+                            progressBar.style.width = job.progress + '%';
+                            progressBar.setAttribute('aria-valuenow', job.progress);
+                            progressBar.textContent = job.progress + '%';
+                        });
+                    },
+                    error: function() {
+                        console.error('Failed to fetch job progress.');
+                    }
+                });
+            }
+
+            function fetchJobMetrics() {
+                $.ajax({
+                    url: "{{ route('queues.get.job.metrics') }}",
+                    data: { ids: {!! json_encode($ids) !!} },
+                    method: 'GET',
+                    success: function(response) {
+                        response.jobs.forEach(function(job) {
+                            updateMetrics(
+                                job.id,
+                                job.memory_usage,
+                                job.peak_memory_usage,
+                                job.cpu_load
+                            );
+                        });
+                    },
+                    error: function() {
+                        console.error('Failed to fetch job metrics.');
+                    }
+                });
+            }
+
+        @endif
 
     </script>
 @endpush

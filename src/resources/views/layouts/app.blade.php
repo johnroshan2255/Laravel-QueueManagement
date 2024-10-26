@@ -107,6 +107,72 @@
             background-color: var(--active-bg) !important;
         }
 
+
+        /* Matrix design */
+
+
+        .metrics-row {
+            background: #f8f9fa;
+            transition: all 0.3s ease;
+        }
+        
+        .metrics-container {
+            padding: 20px;
+            display: none;
+        }
+        
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .metric-card {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        
+        .metric-title {
+            color: #666;
+            font-size: 0.875rem;
+            margin-bottom: 5px;
+        }
+        
+        .metric-value {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #2b2b2b;
+        }
+        
+        .metric-unit {
+            font-size: 0.75rem;
+            color: #666;
+        }
+        
+        .chart-container {
+            height: 200px;
+            width: 100%;
+            background: white;
+            border-radius: 8px;
+            padding: 15px;
+        }
+
+        .toggle-metrics {
+            background: #e4e7f5;
+            border: none;
+            padding: 4px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.875rem;
+        }
+
+        .toggle-metrics:hover {
+            background: #d4d8ec;
+        }
+
         
     </style>
 </head>
