@@ -40,7 +40,6 @@
                             <td>{{ \Illuminate\Support\Str::limit($job->payload, 50) }}</td>
                             <td>{{ $job->failed_at }}</td>
                             <td>
-
                                 <button class="btn btn-sm custom-btn" onclick="showJobDetails({{ $job->id }}, 'failed')">Show Info</button>
                                 <form action="{{ route('queues.cancel.job', $job->id) }}" method="POST" class="d-inline">
                                     @csrf
@@ -51,7 +50,6 @@
                                     @csrf
                                     <button type="submit" class="btn btn-sm custom-btn">Retry</button>
                                 </form>
-                                
                             </td>
                         </tr>
                     @empty
